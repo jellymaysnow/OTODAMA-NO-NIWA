@@ -1,0 +1,11 @@
+.venv/
+.stems-cache/
+__pycache__/
+_old/
+*.mp4
+stems/
+*.mp3
+*.ogg
+*.flac
+*.m4a
+*.aac

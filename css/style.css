@@ -1,0 +1,76 @@
+* {
+  box-sizing: border-box;
+  user-select: none;
+  -webkit-user-select: none;
+}
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background-color: #F7F5F0;
+  font-family: 'Inter', sans-serif;
+  color: #1E293B;
+}
+.font-mincho {
+  font-family: 'Shippori Mincho', serif;
+}
+canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  touch-action: manipulation;
+  cursor: default;
+}
+/* Signature layer over the painting (below the UI, never catches clicks) */
+#sealCanvas {
+  position: fixed;
+  inset: 0;
+  z-index: 5;
+  pointer-events: none;
+}
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  background: rgba(30, 41, 59, 0.16);
+  height: 4px;
+  border-radius: 999px;
+  outline: none;
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #1D6FA3;
+  cursor: pointer;
+  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.25);
+  transition: transform 0.15s ease;
+}
+input[type="range"]::-webkit-slider-thumb:hover {
+  transform: scale(1.15);
+}
+input[type="range"]::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border: none;
+  border-radius: 50%;
+  background: #1D6FA3;
+  cursor: pointer;
+  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.25);
+}
+  
+#scopeBox {
+  width: 230px;
+  height: 120px;
+}
+#scopeGrid, #scopeCanvas {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 230px;
+  height: 120px;
+  cursor: default;
+}

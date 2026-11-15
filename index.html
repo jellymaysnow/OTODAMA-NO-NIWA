@@ -1,0 +1,399 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>音靈之庭 — 音を描く</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Shippori+Mincho:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="css/style.css" />
+  </head>
+  <body class="relative w-full h-full overflow-hidden bg-[#F7F5F0]">
+    <!-- Main Wet-Paper Ink Diffusion Canvas -->
+    <canvas id="watercolorCanvas"></canvas>
+    <!-- Signature layer (title, date, seal) drawn when a piece is finished -->
+    <canvas id="sealCanvas"></canvas>
+
+    <!-- Hidden Audio Element for Uploaded Files -->
+    <audio id="htmlAudioPlayer" crossorigin="anonymous" class="hidden"></audio>
+    <input type="file" id="audioFileInput" accept="audio/*" class="hidden" />
+
+    <!-- Top-Left Title Watermark & Vitality Status -->
+    <header
+      class="fixed top-4 left-4 sm:top-6 sm:left-6 z-20 pointer-events-none"
+    >
+      <div class="flex items-center gap-2.5">
+        <span
+          id="vitalityOrb"
+          class="w-2.5 h-2.5 rounded-full bg-[#1D6FA3] transition-colors duration-300 shadow-sm"
+        ></span>
+        <h1
+          class="font-mincho text-base sm:text-lg tracking-widest text-slate-800 font-medium"
+        >
+          音靈之庭
+        </h1>
+        <span
+          class="hidden sm:inline-block text-xs tracking-wider text-slate-500 border-l border-slate-300 pl-2.5"
+        >
+          音を描く
+        </span>
+      </div>
+      <div class="mt-2 flex items-center gap-2.5 pl-5">
+        <div class="w-20 h-1 rounded-full bg-slate-800/10 overflow-hidden">
+          <div
+            id="vitalityBar"
+            class="h-full w-2 rounded-full bg-[#1D6FA3] transition-all duration-150"
+          ></div>
+        </div>
+        <span
+          id="vitalityLabel"
+          class="font-mincho text-[11px] tracking-widest text-slate-600"
+          >白紙</span
+        >
+      </div>
+    </header>
+
+    <!-- Top-Right Toggle UI Button -->
+    <div
+      class="fixed top-4 right-4 sm:top-6 sm:right-6 z-30 flex items-center gap-2"
+    >
+      <button
+        id="recordBtn"
+        title="曲の最初から動画で録画（もう一度押すと停止）"
+        class="flex items-center gap-1.5 p-2.5 rounded-full bg-white/75 backdrop-blur-md border border-slate-900/10 shadow-sm text-slate-700 hover:bg-white hover:text-slate-950 transition cursor-pointer"
+      >
+        <span id="recordDot" class="block w-3.5 h-3.5 rounded-full border-2 border-current"></span>
+        <span id="recordLabel" class="hidden text-[11px] pr-1">録画中</span>
+      </button>
+      <button
+        id="saveArtBtn"
+        title="作品を画像で保存"
+        class="p-2.5 rounded-full bg-white/75 backdrop-blur-md border border-slate-900/10 shadow-sm text-slate-700 hover:bg-white hover:text-slate-950 transition cursor-pointer"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          class="w-4 h-4"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.8"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+          <polyline points="7 10 12 15 17 10" />
+          <line x1="12" x2="12" y1="15" y2="3" />
+        </svg>
+      </button>
+      <button
+        id="toggleHudBtn"
+        title="UIの表示切替 (Hキー)"
+        class="p-2.5 rounded-full bg-white/75 backdrop-blur-md border border-slate-900/10 shadow-sm text-slate-700 hover:bg-white hover:text-slate-950 transition cursor-pointer"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          class="w-4 h-4"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.8"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
+          <circle cx="12" cy="12" r="3" />
+        </svg>
+      </button>
+    </div>
+
+    <!-- Toast Notification Pill -->
+    <div
+      id="toastBox"
+      class="fixed top-16 left-1/2 -translate-x-1/2 -translate-y-2 opacity-0 pointer-events-none z-40 transition-all duration-300"
+    >
+      <div
+        class="px-4 py-1.5 rounded-full bg-slate-900/85 border border-white/15 text-white text-xs tracking-wide shadow-lg backdrop-blur-md"
+      >
+        <span id="toastMessage">通知メッセージ</span>
+      </div>
+    </div>
+
+    <!-- Drag & Drop Overlay -->
+    <div
+      id="dropOverlay"
+      class="fixed inset-0 z-50 bg-white/85 backdrop-blur-md flex items-center justify-center opacity-0 pointer-events-none transition-opacity duration-200"
+    >
+      <div
+        class="px-8 py-6 rounded-3xl border-2 border-dashed border-sky-700/40 text-center"
+      >
+        <p class="font-mincho text-lg text-slate-800 tracking-widest">
+          音声ファイルをドロップしてインクを垂らす
+        </p>
+        <p class="text-xs text-slate-500 mt-1.5">
+          MP3, WAV, OGG, M4A などに対応
+        </p>
+      </div>
+    </div>
+
+    <!-- Center Welcome Prompt -->
+    <div
+      id="welcomeOverlay"
+      class="fixed inset-0 z-10 flex flex-col items-center justify-center pointer-events-none px-4"
+    >
+      <div
+        class="pointer-events-auto text-center max-w-sm p-6 sm:p-8 rounded-3xl bg-white/80 backdrop-blur-xl border border-slate-900/10 shadow-xl transition-all duration-500"
+      >
+        <p
+          class="font-mincho text-xl sm:text-2xl tracking-widest text-slate-800 mb-2"
+        >
+          音霊の庭
+        </p>
+        <p class="text-xs sm:text-sm text-slate-600 leading-relaxed mb-6">
+          少し水を含んで濡れた白いキャンバスに、音の響きが一滴ずつインクを落とし、ふわっと花開くように滲み広がります。
+        </p>
+        <button
+          id="welcomeStartBtn"
+          class="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full bg-[#1D6FA3] text-white text-xs sm:text-sm font-medium tracking-wider shadow-md hover:brightness-110 active:scale-95 transition cursor-pointer"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            class="w-4 h-4"
+            viewBox="0 0 24 24"
+            fill="currentColor"
+          >
+            <polygon points="6 4 20 12 6 20 6 4" />
+          </svg>
+          <span>内蔵サウンドで始める</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Floating Minimalist Light-Glass Control Dock -->
+    <div
+      id="controlDock"
+      class="fixed bottom-4 sm:bottom-6 left-1/2 -translate-x-1/2 z-30 w-[94%] max-w-2xl rounded-3xl bg-white/80 backdrop-blur-xl border border-slate-900/10 shadow-xl px-4 py-3.5 sm:px-5 sm:py-4 transition-all duration-300"
+    >
+      <div class="flex flex-col gap-3">
+        <!-- Top Row: Audio Source Controls -->
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <div class="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+            <button
+              id="synthBtn"
+              class="flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-[#1D6FA3] text-white text-xs font-medium shadow-sm hover:brightness-110 transition cursor-pointer"
+            >
+              <span id="synthPlayIcon">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  class="w-3.5 h-3.5"
+                  viewBox="0 0 24 24"
+                  fill="currentColor"
+                >
+                  <polygon points="6 4 20 12 6 20 6 4" />
+                </svg>
+              </span>
+              <span id="synthBtnLabel">内蔵サウンド</span>
+            </button>
+
+            <button
+              id="micBtn"
+              class="flex items-center gap-1.5 px-3 py-2 rounded-full bg-slate-900/5 hover:bg-slate-900/10 border border-slate-900/10 text-slate-700 text-xs transition cursor-pointer"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                class="w-3.5 h-3.5"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path
+                  d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"
+                />
+                <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+                <line x1="12" x2="12" y1="19" y2="22" />
+              </svg>
+              <span>マイク</span>
+            </button>
+
+            <button
+              id="uploadBtn"
+              class="flex items-center gap-1.5 px-3 py-2 rounded-full bg-slate-900/5 hover:bg-slate-900/10 border border-slate-900/10 text-slate-700 text-xs transition cursor-pointer"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                class="w-3.5 h-3.5"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <polyline points="17 8 12 3 7 8" />
+                <line x1="12" x2="12" y1="3" y2="15" />
+              </svg>
+              <span>音源読込</span>
+            </button>
+
+            <!-- File transport (shown after an audio file is loaded) -->
+            <div id="fileTransport" class="hidden items-center gap-1.5">
+              <button
+                id="filePlayBtn"
+                title="再生 / 一時停止"
+                class="flex items-center gap-1.5 px-3 py-2 rounded-full bg-slate-900/5 hover:bg-slate-900/10 border border-slate-900/10 text-slate-700 text-xs transition cursor-pointer"
+              >
+                <span id="filePlayIcon"></span>
+                <span id="filePlayLabel">再生</span>
+              </button>
+              <button
+                id="fileStopBtn"
+                title="停止（先頭に戻る）"
+                class="flex items-center gap-1.5 px-3 py-2 rounded-full bg-slate-900/5 hover:bg-slate-900/10 border border-slate-900/10 text-slate-700 text-xs transition cursor-pointer"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  class="w-3.5 h-3.5"
+                  viewBox="0 0 24 24"
+                  fill="currentColor"
+                >
+                  <rect x="6" y="6" width="12" height="12" rx="1" />
+                </svg>
+                <span>停止</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-2 min-w-0">
+            <div
+              class="text-[11px] text-slate-500 truncate max-w-[180px] sm:max-w-[220px]"
+            >
+              <span id="sourceStatusText">待機中 — 音でインクが落ちます</span>
+            </div>
+            <canvas
+              id="waveCanvas"
+              class="hidden shrink-0 cursor-pointer"
+              style="width: 140px; height: 26px"
+              title="クリックでシーク"
+            ></canvas>
+          </div>
+        </div>
+
+        <!-- Divider -->
+        <div class="h-px w-full bg-slate-900/10"></div>
+
+        <!-- Bottom Row: Single-Pigment Swatches, Sensitivity, Clear Paper -->
+        <div class="flex flex-wrap items-center justify-between gap-3 text-xs">
+          <div class="flex items-center gap-1.5 overflow-x-auto pb-0.5 sm:pb-0">
+            <span class="text-[11px] text-slate-500 mr-0.5 shrink-0"
+              >単色インク:</span
+            >
+
+            <button
+              data-palette="indigo"
+              class="palette-btn active flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-slate-900/25 bg-slate-900/10 shadow-sm text-slate-900 transition shrink-0 cursor-pointer"
+            >
+              <span class="w-2.5 h-2.5 rounded-full bg-[#1D6FA3]"></span>
+              <span class="font-mincho text-[11px]">群青・藍</span>
+            </button>
+
+            <button
+              data-palette="custom"
+              id="customPaletteBtn"
+              class="palette-btn relative flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-transparent hover:bg-slate-900/5 text-slate-600 transition shrink-0 cursor-pointer"
+            >
+              <span
+                id="customSwatch"
+                class="w-2.5 h-2.5 rounded-full bg-[#7A4FA3]"
+              ></span>
+              <span class="font-mincho text-[11px]">自由選択</span>
+              <input
+                id="customColorInput"
+                type="color"
+                value="#7a4fa3"
+                class="absolute left-0 bottom-0 w-0 h-0 opacity-0 pointer-events-none"
+              />
+            </button>
+          </div>
+
+          <div class="flex items-center gap-3 ml-auto">
+            <!-- Analysis mode: mixed signal (all sources) / separated instruments (built-in sound with stems) -->
+            <div
+              id="analysisToggle"
+              class="flex items-center gap-0.5 p-0.5 rounded-full bg-slate-900/5 border border-slate-900/10"
+              title="通常: 音全体を帯域で解析 / 分離: 楽器ごとに解析（ローカル限定: 自分のPCで tools/server.py の起動が必要）"
+            >
+              <button
+                data-analysis="normal"
+                class="analysis-btn px-2.5 py-0.5 rounded-full text-[11px] transition cursor-pointer"
+              >
+                通常
+              </button>
+              <button
+                data-analysis="stem"
+                class="analysis-btn px-2.5 py-0.5 rounded-full text-[11px] transition cursor-pointer"
+              >
+                分離<span class="text-[9px] opacity-60 ml-0.5">ローカル限定</span>
+              </button>
+            </div>
+            <label class="flex items-center gap-1.5 text-[11px] text-slate-600">
+              <span>感度</span>
+              <input
+                id="sensitivitySlider"
+                type="range"
+                min="0.5"
+                max="2.5"
+                step="0.1"
+                value="1.3"
+                class="w-16 sm:w-20"
+              />
+            </label>
+
+            <button
+              id="clearCanvasBtn"
+              title="白紙に戻す"
+              class="px-2.5 py-1 rounded-full bg-slate-900/5 hover:bg-slate-900/10 border border-slate-900/10 text-[11px] text-slate-700 transition cursor-pointer"
+            >
+              白紙に戻す
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Stereo field (polar-sample goniometer), bottom-left -->
+    <div
+      id="scopeBox"
+      class="fixed bottom-4 left-4 sm:bottom-6 sm:left-6 z-20 hidden min-[1200px]:block transition-opacity duration-300 pointer-events-none"
+    >
+      <canvas id="scopeGrid"></canvas>
+      <canvas id="scopeCanvas"></canvas>
+    </div>
+
+    <!-- Credits -->
+    <div class="fixed bottom-1 right-2 z-10 text-[9px] text-slate-500/70 pointer-events-auto">
+      Code: PolyForm Noncommercial 1.0.0 · Audio © Jieli · Tailwind CSS (MIT) · Inter / Shippori Mincho (OFL)
+    </div>
+
+    <script src="js/config.js"></script>
+    <script src="js/shaders.js"></script>
+    <script src="js/renderer.js"></script>
+    <script src="js/plan.js"></script>
+    <script src="js/ink.js"></script>
+    <script src="js/separator.js"></script>
+    <script src="js/audio.js"></script>
+    <script src="js/scope.js"></script>
+    <script src="js/waveform.js"></script>
+    <script src="js/finish.js"></script>
+    <script src="js/recorder.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/main.js"></script>
+  </body>
+</html>
