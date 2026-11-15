@@ -2,7 +2,7 @@
 
 [日本語](README.ja.md)
 
-A visualizer that turns sound into watercolor ink drops. It is a static page: just open `index.html`, or publish it with GitHub Pages.
+A visualizer that turns sound into watercolor ink drops. It is a static page: just open `index.html`.
 
 ## Features
 
