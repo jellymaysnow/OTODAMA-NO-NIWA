@@ -1,4 +1,4 @@
-# audio_vis
+# OTODAMA NO NIWA
 
 [日本語](README.ja.md)
 
